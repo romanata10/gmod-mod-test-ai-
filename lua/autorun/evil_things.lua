@@ -1,6 +1,11 @@
-if SERVER then AddCSLuaFile() end
+if SERVER then
+    AddCSLuaFile()
+    AddCSLuaFile("evil_things/cl_models.lua")
+else
+    include("evil_things/cl_models.lua")
+end
 
--- Evil API is an optional Workshop dependency. We do not copy or bundle it.
+-- Optional Evil API integration: API code is a separate Workshop dependency.
 local function LoadEvilAPI()
     if Evil and Evil.Presence then return true end
     if file.Exists("evil_api/init.lua", "LUA") then

@@ -1,2 +1,3 @@
 include("shared.lua")
-function ENT:Draw() self:DrawModel() end
+function ENT:Draw() EvilThingsRender.DrawTower(self) end
+function ENT:DrawTranslucent() self:Draw() end
