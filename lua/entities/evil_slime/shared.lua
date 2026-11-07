@@ -3,6 +3,7 @@ ENT.Base = "evil_creature_base"
 ENT.PrintName = "Evil Slime"
 ENT.Category = "Evil Things"
 ENT.Spawnable = true
+ENT.IconOverride = "entities/evil_slime.png"
 ENT.AdminOnly = false
 ENT.Model = "models/props_junk/garbage_glassbottle003a.mdl"
 ENT.ModelScale = 1.8

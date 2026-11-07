@@ -3,6 +3,7 @@ ENT.Base = "evil_creature_base"
 ENT.PrintName = "Evil Water Tower"
 ENT.Category = "Evil Things"
 ENT.Spawnable = true
+ENT.IconOverride = "entities/evil_water_tower.png"
 ENT.AdminOnly = false
 ENT.Model = "models/props_canal/canal_bridge02.mdl"
 ENT.ModelScale = 0.8

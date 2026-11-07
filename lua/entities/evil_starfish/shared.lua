@@ -3,6 +3,7 @@ ENT.Base = "evil_creature_base"
 ENT.PrintName = "Evil Starfish"
 ENT.Category = "Evil Things"
 ENT.Spawnable = true
+ENT.IconOverride = "entities/evil_starfish.png"
 ENT.AdminOnly = false
 ENT.Model = "models/props_junk/garbage_metalcan001a.mdl"
 ENT.ModelScale = 2.1
