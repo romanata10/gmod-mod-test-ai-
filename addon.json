@@ -1,0 +1,6 @@
+{
+  "title": "Evil Things: Starfish, Tower & Slime",
+  "type": "servercontent",
+  "tags": ["fun", "roleplay"],
+  "ignore": [".git/*", "README.md"]
+}
