@@ -1,19 +1,104 @@
-AddCSLuaFile("shared.lua"); AddCSLuaFile("cl_init.lua")
+AddCSLuaFile("shared.lua")
+AddCSLuaFile("cl_init.lua")
 include("shared.lua")
-function ENT:DoAttackPower(ply)
-    if not IsValid(ply) then return end
-    local push = (ply:GetPos() - self:GetPos()):GetNormalized() * 230 + Vector(0, 110, 0)
-    ply:SetVelocity(push)
-    ply:ScreenFade(SCREENFADE.IN, Color(180, 20, 35, 100), 0.18, 0.25)
+
+local function freeVictim(victim)
+    if not IsValid(victim) then return end
+    victim:SetNW2Bool("EvilCreatureCaptured", false)
+    if Evil and Evil.Thaw then Evil.Thaw(victim) else victim:Freeze(false) end
 end
-function ENT:DoSpecialPower(target)
-    if not IsValid(target) then return end
-    -- Five-armed burst: a short, readable radial shove, without trapping the player.
-    for _, ent in ipairs(ents.FindInSphere(self:GetPos(), 220)) do
-        if ent:IsPlayer() and ent:Alive() then
-            local away = (ent:GetPos() - self:GetPos()):GetNormalized()
-            ent:SetVelocity(away * 380 + Vector(0,0,150))
+
+function ENT:DoAttackPower(ply)
+    if not IsValid(ply) or not ply:Alive() or self.Capturing then return end
+    self.Capturing = true
+    self.CaptureVictim = ply
+    self:SetNW2Entity("EvilStarTarget", ply)
+    ply:SetNW2Bool("EvilCreatureCaptured", true)
+    if Evil and Evil.Claim then
+        if not Evil.Claim(ply, self) then self.Capturing = false; self:SetNW2Entity("EvilStarTarget", NULL); return end
+    end
+    if Evil and Evil.Freeze then Evil.Freeze(ply) else ply:Freeze(true) end
+
+    local function drag()
+        if not IsValid(self) or not IsValid(ply) or not ply:Alive() or not self.Capturing then return end
+        local sink = self:GetPos() + Vector(0,0,7) - self:GetForward()*5
+        ply:SetPos(sink)
+        ply:SetEyeAngles((self:GetPos() - ply:GetPos()):Angle())
+    end
+    timer.Create("EvilStarDrag_"..self:EntIndex(), 0.05, 80, drag)
+
+    local function release(eaten)
+        if not IsValid(self) then return end
+        timer.Remove("EvilStarDrag_"..self:EntIndex())
+        if IsValid(ply) then
+            freeVictim(ply)
+            if Evil and Evil.Unclaim then Evil.Unclaim(ply, self) end
+            if eaten and ply:Alive() then
+                local dmg = DamageInfo(); dmg:SetDamage(9999); dmg:SetAttacker(self); dmg:SetInflictor(self); dmg:SetDamageType(DMG_SLASH)
+                ply:TakeDamageInfo(dmg)
+            end
+        end
+        self.Capturing = false
+        self.CaptureVictim = nil
+        self:SetNW2Entity("EvilStarTarget", NULL)
+        if eaten then self:RunAwayAfterMeal(IsValid(ply) and ply:GetPos() or self:GetPos()) end
+    end
+    self.ReleaseCapture = release
+
+    if Evil and Evil.Mash then
+        Evil.Mash(ply, self, {
+            key = IN_JUMP, gain = 0.12, decay = 0.1, time = 4,
+            done = function() if IsValid(self) and self.Capturing then release(false) end end,
+            fail = function() if IsValid(self) and self.Capturing then release(true) end end
+        })
+    else
+        timer.Create("EvilStarEat_"..self:EntIndex(), 4, 1, function()
+            if IsValid(self) and self.Capturing then release(true) end
+        end)
+    end
+end
+
+function ENT:RunAwayAfterMeal(fromPos)
+    local waterGoal
+    for radius=160,960,160 do
+        for i=0,15 do
+            local a=i*math.pi*2/16
+            for z=-32,64,32 do
+                local probe=self:GetPos()+Vector(math.cos(a)*radius,math.sin(a)*radius,z)
+                if bit.band(util.PointContents(probe),CONTENTS_WATER)~=0 then waterGoal=probe; break end
+            end
+            if waterGoal then break end
+        end
+        if waterGoal then break end
+    end
+    self.Target=nil
+    self.NextSearch=CurTime()+25
+    if waterGoal then
+        self.FleeGoal=waterGoal
+    else
+        local away=(self:GetPos()-fromPos):GetNormalized()
+        if away:LengthSqr()<0.01 then away=VectorRand():GetNormalized() end
+        self.FleeGoal=self:GetPos()+away*700+Vector(0,0,0)
+    end
+end
+
+function ENT:DoSpecialPower(_)
+    -- Irregular spines and a quick arm-flail burst around the brittle-star body.
+    for _, ent in ipairs(ents.FindInSphere(self:GetPos(), 145)) do
+        if ent:IsPlayer() and ent:Alive() and ent ~= self.CaptureVictim then
+            local away=(ent:GetPos()-self:GetPos()):GetNormalized()
+            ent:SetVelocity(away*210+Vector(0,0,70))
         end
     end
-    local ed = EffectData(); ed:SetOrigin(self:GetPos()); ed:SetScale(0.7); util.Effect("cball_explode", ed, true, true)
+    local fx=EffectData(); fx:SetOrigin(self:GetPos()); fx:SetScale(0.55); util.Effect("cball_explode",fx,true,true)
+end
+
+function ENT:OnRemove()
+    timer.Remove("EvilStarDrag_"..self:EntIndex())
+    timer.Remove("EvilStarEat_"..self:EntIndex())
+    if IsValid(self.CaptureVictim) then
+        freeVictim(self.CaptureVictim)
+        if Evil and Evil.Unclaim then Evil.Unclaim(self.CaptureVictim,self) end
+    end
+    if Evil and Evil.Absent then Evil.Absent(self) end
 end
