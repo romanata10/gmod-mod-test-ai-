@@ -1,2 +1,3 @@
 include("shared.lua")
-function ENT:Draw() self:DrawModel() end
+function ENT:Draw() end
+function ENT:DrawTranslucent() end

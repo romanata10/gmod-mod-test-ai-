@@ -3,10 +3,15 @@ include("shared.lua")
 function ENT:DoAttackPower(ply)
     if not IsValid(ply) then return end
     -- Slime's sticky hit slows movement for a moment; timer restores the original speed.
-    local oldWalk, oldRun = ply:GetWalkSpeed(), ply:GetRunSpeed()
-    ply:SetWalkSpeed(math.max(80, oldWalk * 0.55)); ply:SetRunSpeed(math.max(120, oldRun * 0.55))
+    ply.EvilSlimeOriginalSpeed = ply.EvilSlimeOriginalSpeed or {walk = ply:GetWalkSpeed(), run = ply:GetRunSpeed()}
+    local original = ply.EvilSlimeOriginalSpeed
+    ply:SetWalkSpeed(math.max(80, original.walk * 0.55)); ply:SetRunSpeed(math.max(120, original.run * 0.55))
     timer.Create("EvilSlimeSlow_" .. ply:EntIndex(), 3.5, 1, function()
-        if IsValid(ply) then ply:SetWalkSpeed(oldWalk); ply:SetRunSpeed(oldRun) end
+        if IsValid(ply) then
+            local speeds = ply.EvilSlimeOriginalSpeed or original
+            ply:SetWalkSpeed(speeds.walk); ply:SetRunSpeed(speeds.run)
+            ply.EvilSlimeOriginalSpeed = nil
+        end
     end)
 end
 function ENT:DoSpecialPower(target)
